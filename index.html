@@ -5,56 +5,51 @@
     <button type="button" onclick="restCheck()">Check AGO REST Services</button>
 
     <h2>Response from AGO Server: </h2>
+    <div id="results"></div>
 
-    <p id="theService"></p>
-    <p id="theStatus"></p>
-    <p id="theResponse"></p>
-
-<script>
-    // No need for named function if placed inside 'Require' block (right before loading the resource)
-    function restCheck() {
-        var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function() {
-
-            // This block catches general errors (i.e. AGO services down/unavailable)
-            if (this.readyState == 4 && this.status !== 200) {
-                readResponse(xhttp);
+    <script>
+        function restCheck() {
+            // Set services to check in this array
+            var index =
+            [
+                "https://server.arcgisonline.com/arcgis/rest/info/healthCheck?f=json", // CHECK ALL REST SERVICES ON AGO
+                "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/info/?f=json", // CHECK ALL REST SERVICES IN TXDOT AGO SPACE
+                "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/CountyRoads_Updates_dev3/FeatureServer/0?f=json", // CHECK INDIVIDUAL HOSTED FEATURE SERVICE (the service here is only shared with a group)
+                "https://tiles.arcgis.com/tiles/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Vector_Tile_Basemap/VectorTileServer?f=json" // CHECK VECTOR TILE SERVICE
+            ];
+            var responseList = [];
+            for (var i=0; i<index.length; i++) {
+                var url = index[i];
+                let request = new XMLHttpRequest();
+                request.open("GET", url);
+                request.onreadystatechange = function() {
+                    // This block catches general errors (i.e. AGO services down/unavailable)
+                    // Either send to another function for handling, or handle within
+                    if (request.readyState === XMLHttpRequest.DONE && request.status !== 200) {
+                        readResponse(request);
+                        // alert("Services Down");
+                    }
+                    // This block catches specific errors (i.e. Sharing settings)
+                    // Send to another function for handling
+                    if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
+                        readResponse(request);
+                    }
+                }
+                request.send();
+                function readResponse(request) {
+                    // Do some error handling here (alert, redirect, switch service url, etc.)
+                    // Logging and adding to innerHTML for debugging
+                    var theStatus = request.status;
+                    var theURL = request.responseURL;
+                    var theResponse = JSON.parse(request.responseText);
+                    responseList.push("Request Status: "+theStatus, "Service URL (see console for more details): "+theURL, "Server Response: "+JSON.stringify(theResponse),"<br>");
+                    console.log(theStatus);
+                    console.log(theURL);
+                    console.log(theResponse);
+                    document.getElementById("results").innerHTML = responseList.join("<br>");
+                }
             }
-            // This block catches specific errors (i.e. Sharing settings)
-            if (this.readyState == 4 && this.status == 200) {
-                readResponse(xhttp);
-            }
-          };
-
-        // Currently only checks one of these at a time, possiblity of looping through each one?
-
-        // CHECK ALL REST SERVICES ON AGO
-        // xhttp.open("GET", "https://server.arcgisonline.com/arcgis/rest/info/healthCheck?f=json", true);
-
-        // CHECK ALL REST SERVICES IN TXDOT AGO SPACE
-        // xhttp.open("GET", "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/info/?f=json", true);
-
-        // CHECK INDIVIDUAL HOSTED FEATURE SERVICE (the service here is only shared with a group)
-        xhttp.open("GET", "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/CountyRoads_Updates_dev3/FeatureServer/0?f=json", true);
-
-        // CHECK VECTOR TILE SERVICE
-        // xhttp.open("GET", "https://tiles.arcgis.com/tiles/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Vector_Tile_Basemap/VectorTileServer?f=json", true);
-        xhttp.send();
-
-        function readResponse(request) {
-            // Do some error handling (alert, redirect, switch service url, etc.)
-            var theServiceURL = request.responseURL;
-            var theStatus = request.status;
-            var theResponse = JSON.parse(request.responseText);
-            console.log(theServiceURL);
-            console.log(theStatus);
-            console.log(theResponse);
-            document.getElementById("theService").innerHTML = "Service URL: "+JSON.stringify(theServiceURL);
-            document.getElementById("theStatus").innerHTML = "Request Status: "+theStatus;
-            document.getElementById("theResponse").innerHTML = "Server Response (see console for more details): "+JSON.stringify(theResponse);
-        }
-    };
-</script>
-
+        };
+    </script>
 </body>
 </html>
